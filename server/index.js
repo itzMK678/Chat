@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 mongoose.connect(
-  "mongodb+srv://mainUser:Mamoon592@cluster0.sgyfjmr.mongodb.net/CHAT?retryWrites=true&w=majority"
+ 
 ).then(() => console.log("MongoDB connected")).catch(console.log);
 
 app.use("/auth", require("./routes/auth"));
