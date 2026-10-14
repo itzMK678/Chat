@@ -11,7 +11,9 @@ function App() {
       {!user ? (
         <div className="flex justify-center items-center h-screen">
           <div className="bg-white p-10 rounded-lg shadow-lg w-96">
-            <Signup setUser={setUser} />
+           <div>
+             <Signup setUser={setUser} />
+               </div>
             <div>
             <Login setUser={setUser} />
             </div>
