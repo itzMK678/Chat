@@ -9,6 +9,7 @@ import "dotenv/config";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import messageRoutes from "./routes/message.js";
+import profileRoutes from "./routes/setting.js";
 
 const app = express();
 
@@ -25,7 +26,7 @@ mongoose
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/messages", messageRoutes);
-
+app.use("/profile", profileRoutes);
 // HTTP server and Socket.IO
 const server = http.createServer(app);
 

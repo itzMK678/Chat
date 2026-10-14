@@ -1,13 +1,17 @@
+
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
+import Setting from "../components/Setting";
+import { Settings, ArrowLeft } from "lucide-react";
 
-const Chat = ({ user }) => {
+const Chat = ({ user, setUser }) => {
   const [users, setUsers] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
 
   const socket = useRef();
@@ -61,26 +65,74 @@ const Chat = ({ user }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  if (showSettings) {
+    return (
+      <div>
+        <button
+          onClick={() => setShowSettings(false)}
+          className="flex items-center gap-2 p-3 text-purple-600 font-semibold"
+        >
+          <ArrowLeft size={20} />
+          Back to Chat
+        </button>
+
+        <Setting user={user} setUser={setUser} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen">
-      <div className={`bg-gray-200 flex flex-col transition-transform duration-300
+      <div className={`bg-red-200 flex flex-col transition-transform duration-300
         ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 w-64 md:w-1/4 absolute md:relative z-10 h-full`}>
-        <h2 className="p-4 font-bold text-lg border-b">Users</h2>
-        <div className="flex overflow-x-auto p-2 space-x-2">
-          {users.map(u => {
+        <div className="p-4 font-bold text-lg border-b flex justify-between">
+          <div><h2>Users</h2></div>
+
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-lg hover:bg-red-300 transition cursor-pointer"
+            title="Profile Settings"
+            aria-label="Open profile settings"
+          >
+            <Settings size={22} />
+          </button>
+        </div>
+
+        <div className="flex flex-col p-2">
+          {users.map((u) => {
             const isOnline = onlineUsers.includes(u._id);
+
             return (
-              <div key={u._id} onClick={() => { setCurrentChat(u); setShowSidebar(false); }} className="flex flex-col items-center cursor-pointer relative">
-                <img src={u.avatar} alt="" className="w-12 h-12 rounded-full border-2 border-purple-600" />
-                <span className={`absolute top-0 right-0 w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-gray-400"} border border-white`}></span>
-                <span className="text-sm">{u.username}</span>
+              <div
+                key={u._id}
+                onClick={() => {
+                  setCurrentChat(u);
+                  setShowSidebar(false);
+                }}
+                className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded cursor-pointer"
+              >
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={u.avatar}
+                    alt={u.username}
+                    className="w-12 h-12 rounded-full border-2 border-purple-600 object-cover"
+                  />
+
+                  <span
+                    className={`absolute top-0 right-0 w-3 h-3 rounded-full border border-white ${
+                      isOnline ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  ></span>
+                </div>
+
+                <span className="text-sm font-medium">{u.username}</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-white ml-0 md:ml-64 w-full">
+      <div className="flex-1 flex flex-col bg-blue-300 w-full">
         {currentChat ? (
           <>
             <div className="p-4 font-bold text-lg border-b flex items-center justify-between">
@@ -92,6 +144,7 @@ const Chat = ({ user }) => {
               )}
               <button onClick={() => setShowSidebar(true)} className="md:hidden ml-2 text-purple-600 font-bold">Back</button>
             </div>
+
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.sender === user._id ? "justify-end" : "justify-start"}`}>
@@ -102,6 +155,7 @@ const Chat = ({ user }) => {
               ))}
               <div ref={messagesEndRef} />
             </div>
+
             <div className="flex p-4 border-t">
               <input value={text} onChange={e => setText(e.target.value)} className="flex-1 border p-2 rounded mr-2" placeholder="Type a message..." />
               <button onClick={sendMessage} className="bg-purple-600 text-white p-2 rounded">Send</button>
