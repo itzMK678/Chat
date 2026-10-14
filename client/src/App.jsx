@@ -12,13 +12,16 @@ function App() {
         <div className="flex justify-center items-center h-screen">
           <div className="bg-white p-10 rounded-lg shadow-lg w-96">
             <Signup setUser={setUser} />
-            <hr className="my-5" />
+            <div>
             <Login setUser={setUser} />
+            </div>
           </div>
         </div>
       ) : (
         <Chat user={user} />
       )}
+      
+       
     </div>
   );
 }
