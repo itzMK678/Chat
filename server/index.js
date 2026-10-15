@@ -5,6 +5,8 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 import "dotenv/config";
+import express from "express";
+import path from "path";
 
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
@@ -15,7 +17,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
-
+app.use( "/uploads",express.static(path.resolve("uploads")));
 // MongoDB connection
 mongoose
   .connect(process.env.mongourl)

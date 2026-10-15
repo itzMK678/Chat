@@ -2,8 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import Setting from "../components/Setting";
-import { Settings, ArrowLeft } from "lucide-react";
-
+import { Settings, ArrowLeft, Mic, Square, Send, Trash2 } from "lucide-react";
 const Chat = ({ user, setUser }) => {
   const [users, setUsers] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
@@ -13,9 +12,127 @@ const Chat = ({ user, setUser }) => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
+const [isRecording, setIsRecording] = useState(false);
+const [audioBlob, setAudioBlob] = useState(null);
+const [audioPreview, setAudioPreview] = useState("");
 
+const mediaRecorderRef = useRef(null);
+const audioChunksRef = useRef([]);
   const socket = useRef();
+const startRecording = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true
+        });
 
+        const recorder = new MediaRecorder(stream);
+
+        mediaRecorderRef.current = recorder;
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunksRef.current.push(event.data);
+            }
+        };
+
+        recorder.onstop = () => {
+            const blob = new Blob(audioChunksRef.current, {
+                type: recorder.mimeType || "audio/webm"
+            });
+
+            setAudioBlob(blob);
+            setAudioPreview(URL.createObjectURL(blob));
+
+            stream.getTracks().forEach((track) => track.stop());
+        };
+
+        recorder.start();
+        setIsRecording(true);
+    } catch (error) {
+        console.error("Microphone error:", error);
+        alert("Unable to access your microphone. Please allow microphone access.");
+    }
+};
+
+const stopRecording = () => {
+    if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+    ) {
+        mediaRecorderRef.current.stop();
+    }
+
+    setIsRecording(false);
+};
+
+const cancelRecording = () => {
+    if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+    ) {
+        mediaRecorderRef.current.onstop = () => {
+            mediaRecorderRef.current?.stream
+                ?.getTracks()
+                .forEach((track) => track.stop());
+        };
+
+        mediaRecorderRef.current.stop();
+    }
+
+    setIsRecording(false);
+    setAudioBlob(null);
+
+    if (audioPreview) {
+        URL.revokeObjectURL(audioPreview);
+    }
+
+    setAudioPreview("");
+};
+const sendVoiceMessage = async () => {
+    if (!audioBlob || !currentChat) return;
+
+    try {
+        const formData = new FormData();
+
+        formData.append("sender", user._id);
+        formData.append("receiver", currentChat._id);
+
+        const extension = audioBlob.type.includes("ogg")
+            ? "ogg"
+            : audioBlob.type.includes("mp4")
+                ? "m4a"
+                : "webm";
+
+        formData.append("audio", audioBlob, `voice.${extension}`);
+
+        const response = await fetch(
+            "http://localhost:5000/messages/voice",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const message = await response.json();
+
+        if (!response.ok) {
+            throw new Error(message.message || "Failed to send voice message");
+        }
+
+        setMessages((prev) => [...prev, message]);
+
+        if (audioPreview) {
+            URL.revokeObjectURL(audioPreview);
+        }
+
+        setAudioBlob(null);
+        setAudioPreview("");
+    } catch (error) {
+        console.error("Voice message error:", error);
+        alert(error.message || "Could not send voice message.");
+    }
+};
   useEffect(() => {
     socket.current = io("http://localhost:5000");
     socket.current.emit("addUser", user._id);
@@ -158,6 +275,42 @@ const Chat = ({ user, setUser }) => {
 
             <div className="flex p-4 border-t">
               <input value={text} onChange={e => setText(e.target.value)} className="flex-1 border p-2 rounded mr-2" placeholder="Type a message..." />
+              <div className="voice-controls">
+    {!isRecording ? (
+        <button
+            type="button"
+            onClick={startRecording}
+            title="Record voice message"
+        >
+            <Mic size={20} />
+        </button>
+    ) : (
+        <button
+            type="button"
+            onClick={stopRecording}
+            title="Stop recording"
+        >
+            <Square size={20} />
+            Stop
+        </button>
+    )}
+
+    {audioPreview && (
+        <div>
+            <audio controls src={audioPreview} />
+
+            <button type="button" onClick={sendVoiceMessage}>
+                <Send size={18} />
+                Send voice
+            </button>
+
+            <button type="button" onClick={cancelRecording}>
+                <Trash2 size={18} />
+                Cancel
+            </button>
+        </div>
+    )}
+</div>
               <button onClick={sendMessage} className="bg-purple-600 text-white p-2 rounded">Send</button>
             </div>
           </>
