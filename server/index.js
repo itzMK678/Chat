@@ -26,9 +26,9 @@ app.use("/uploads", express.static(path.resolve("uploads")));
 mongoose
   .connect(process.env.mongourl)
   .then(() => console.log("MongoDB connected"))
-  .catch((error) =>
-    console.error("MongoDB connection error:", error)
-  );
+  .catch((error) => {
+    console.error("MongoDB connection error:", error);
+  });
 
 // API routes
 app.use("/auth", authRoutes);
@@ -46,13 +46,13 @@ const io = new Server(server, {
   },
 });
 
-// Store online users as userId -> socketId
+// Store online users: userId -> socketId
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Register user and track their socket
+  // 1. Register user
   socket.on("addUser", (userId) => {
     if (!userId) return;
 
@@ -64,42 +64,53 @@ io.on("connection", (socket) => {
     io.emit("getUsers", Object.keys(onlineUsers));
   });
 
-  // Deliver existing text messages in real time
+  // 2. Send messages in real time
   socket.on("sendMessage", ({ senderId, receiverId, text, message }) => {
-  if (!senderId || !receiverId) return;
-
-  const receiverSocket = onlineUsers[String(receiverId)];
-
-  if (receiverSocket) {
-    io.to(receiverSocket).emit("getMessage", {
-      senderId,
-      text,
-      message: message || undefined,
-    });
-  }
-});
-
-  // 1. Caller sends a WebRTC offer
-  socket.on("callUser", ({ receiverId, offer, callerName }) => {
-    if (!socket.userId || !receiverId || !offer) return;
+    if (!senderId || !receiverId) return;
 
     const receiverSocket = onlineUsers[String(receiverId)];
 
-    if (!receiverSocket) {
-      socket.emit("callUnavailable", {
-        message: "This user is offline.",
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("getMessage", {
+        senderId: String(senderId),
+        text,
+        message: message || undefined,
       });
-      return;
     }
-
-    io.to(receiverSocket).emit("incomingCall", {
-      callerId: socket.userId,
-      callerName: callerName || "Unknown caller",
-      offer,
-    });
   });
 
-  // 2. Receiver accepts and sends the WebRTC answer
+  // 3. Initiate voice or video call
+  socket.on(
+    "callUser",
+    ({ receiverId, offer, callerName, callType }) => {
+      if (!socket.userId || !receiverId || !offer) return;
+
+      const receiverSocket = onlineUsers[String(receiverId)];
+
+      if (!receiverSocket) {
+        socket.emit("callUnavailable", {
+          message: "This user is offline.",
+        });
+        return;
+      }
+
+      io.to(receiverSocket).emit("incomingCall", {
+        callerId: socket.userId,
+        callerName: callerName || "Unknown caller",
+        offer,
+        callType: callType === "video" ? "video" : "audio",
+      });
+
+      console.log(
+        `${callType === "video" ? "Video" : "Voice"} call:`,
+        socket.userId,
+        "->",
+        receiverId
+      );
+    }
+  );
+
+  // 4. Receiver accepts and sends WebRTC answer
   socket.on("acceptCall", ({ callerId, answer }) => {
     if (!socket.userId || !callerId || !answer) return;
 
@@ -113,7 +124,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 3. Receiver rejects the call
+  // 5. Reject incoming call
   socket.on("rejectCall", ({ callerId }) => {
     if (!socket.userId || !callerId) return;
 
@@ -126,7 +137,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 4. Relay ICE candidates between the two participants
+  // 6. Exchange WebRTC ICE candidates
   socket.on("iceCandidate", ({ targetUserId, candidate }) => {
     if (!socket.userId || !targetUserId || !candidate) return;
 
@@ -140,7 +151,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 5. Either participant ends the call
+  // 7. End call
   socket.on("endCall", ({ targetUserId }) => {
     if (!socket.userId || !targetUserId) return;
 
@@ -153,9 +164,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle disconnection
+  // 8. Disconnect and update online users
   socket.on("disconnect", () => {
-    // Don't remove a newer connection belonging to the same user
+    // Avoid removing a newer socket for the same user
     if (
       socket.userId &&
       onlineUsers[socket.userId] === socket.id
