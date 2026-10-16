@@ -121,7 +121,11 @@ const sendVoiceMessage = async () => {
         }
 
         setMessages((prev) => [...prev, message]);
-
+socket.current?.emit("sendMessage", {
+    senderId: user._id,
+    receiverId: currentChat._id,
+    message
+});
         if (audioPreview) {
             URL.revokeObjectURL(audioPreview);
         }
@@ -137,11 +141,26 @@ const sendVoiceMessage = async () => {
     socket.current = io("http://localhost:5000");
     socket.current.emit("addUser", user._id);
 
-    socket.current.on("getMessage", ({ senderId, text }) => {
-      if (currentChat && senderId === currentChat._id) {
-        setMessages(prev => [...prev, { sender: senderId, text }]);
-      }
-    });
+   socket.current.on("getMessage", ({ senderId, message, text }) => {
+  if (!currentChat || senderId !== currentChat._id) return;
+
+  const incomingMessage = message || {
+    sender: senderId,
+    text,
+    type: "text"
+  };
+
+  setMessages((prev) => {
+    if (
+      incomingMessage._id &&
+      prev.some((m) => m._id === incomingMessage._id)
+    ) {
+      return prev;
+    }
+
+    return [...prev, incomingMessage];
+  });
+});
 
     socket.current.on("getUsers", (onlineIds) => {
       setOnlineUsers(onlineIds);
@@ -266,7 +285,25 @@ const sendVoiceMessage = async () => {
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.sender === user._id ? "justify-end" : "justify-start"}`}>
                   <div className={`${m.sender === user._id ? "bg-purple-600 text-white" : "bg-gray-300 text-black"} p-2 rounded-lg max-w-xs`}>
-                    {m.text}
+                   
+{m.type === "voice" ? (
+  <audio
+    controls
+    preload="metadata"
+    src={
+      m.audioUrl?.startsWith("http")
+        ? m.audioUrl
+        : `http://localhost:5000${m.audioUrl}`
+    }
+    className="max-w-full"
+    onError={() => console.error("Unable to load voice message:", m.audioUrl)}
+  >
+    Your browser does not support audio playback.
+  </audio>
+) : (
+  <span>{m.text}</span>
+)}
+
                   </div>
                 </div>
               ))}
