@@ -2,19 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import Setting from "../components/Setting";
-import {
-  Settings,
-  ArrowLeft,
-  Mic,
-  Square,
-  Send,
-  Trash2,
-  Phone,
-  PhoneOff,
-  MicOff,
-  Video,
-  VideoOff,
-} from "lucide-react";
+import {Settings,ArrowLeft,Mic,Square,Send,Trash2,Phone,PhoneOff,MicOff,Video,VideoOff,} from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -41,7 +29,7 @@ const Chat = ({ user, setUser }) => {
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [callMessage, setCallMessage] = useState("");
 
-  // Refs
+ 
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
