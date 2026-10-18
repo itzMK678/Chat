@@ -2,6 +2,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import http from "http";
 import { Server } from "socket.io";
 import "dotenv/config";
@@ -15,10 +16,18 @@ import profileRoutes from "./routes/setting.js";
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
 
+
+//cookies
+app.use(cookieParser());
+// 2. Configure CORS with credentials
+const ALLOWED_ORIGIN = process.env.CLIENT_URL || "http://localhost:5173";
+
+app.use(cors({
+  origin: ALLOWED_ORIGIN,
+  credentials: true // Allows cookies to be sent and received
+}));
+app.use(express.json({ limit: "10mb" }));
 // Serve uploaded voice messages
 app.use("/uploads", express.static(path.resolve("uploads")));
 

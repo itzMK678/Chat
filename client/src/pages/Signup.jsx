@@ -81,6 +81,7 @@ const Signup = ({ setUser }) => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           username: username.trim(),
           email: email.trim(),
