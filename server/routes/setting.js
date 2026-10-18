@@ -2,11 +2,12 @@ import express from "express";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// PATCH /profile/:userId
-router.patch("/:userId", async (req, res) => {
+// PATCH /profile/:userId (Protected - user can only update their own profile)
+router.patch("/:userId", protect, async (req, res) => {
   try {
     const { userId } = req.params;
     const {
@@ -20,6 +21,14 @@ router.patch("/:userId", async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid user ID.",
+      });
+    }
+
+    // Only allow editing your own profile
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only update your own profile.",
       });
     }
 
@@ -44,7 +53,7 @@ router.patch("/:userId", async (req, res) => {
       if (!currentPassword) {
         return res.status(400).json({
           success: false,
-          message: "Current password is required.",
+          message: "Current password is required to set a new password.",
         });
       }
 
@@ -55,10 +64,15 @@ router.patch("/:userId", async (req, res) => {
         });
       }
 
-      const passwordMatches = await bcrypt.compare(
+      let passwordMatches = await bcrypt.compare(
         currentPassword,
         user.password
       );
+
+      // Support legacy unhashed password verification
+      if (!passwordMatches && currentPassword === user.password) {
+        passwordMatches = true;
+      }
 
       if (!passwordMatches) {
         return res.status(400).json({
@@ -67,7 +81,7 @@ router.patch("/:userId", async (req, res) => {
         });
       }
 
-      user.password = await bcrypt.hash(newPassword, 12);
+      user.password = await bcrypt.hash(newPassword, 10);
     }
 
     user.username = username.trim();
@@ -78,7 +92,7 @@ router.patch("/:userId", async (req, res) => {
 
     await user.save();
 
-    // Never send the password hash to the frontend.
+    // Never send password to frontend
     const updatedUser = user.toObject();
     delete updatedUser.password;
 
@@ -93,7 +107,7 @@ router.patch("/:userId", async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "That username or another unique field is already in use.",
+        message: "That username is already taken.",
       });
     }
 

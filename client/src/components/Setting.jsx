@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { UserRound, Camera, LockKeyhole, Save } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const Setting = ({ user, setUser }) => {
   const [username, setUsername] = useState(user.username || "");
   const [avatar, setAvatar] = useState(user.avatar || "");
@@ -44,10 +46,11 @@ const Setting = ({ user, setUser }) => {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/profile/${user._id}`,
+        `${API_URL}/profile/${user._id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             username: username.trim(),
             avatar,

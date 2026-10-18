@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import Setting from "../components/Setting";
-import { Settings, ArrowLeft } from "lucide-react";
+import { Settings, ArrowLeft, LogOut } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -20,7 +20,9 @@ const Slider = ({
   useEffect(() => {
     if (!user?._id) return;
 
-    fetch(`${API_URL}/users`)
+    fetch(`${API_URL}/users`, {
+      credentials: "include",
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Could not load users");
         return res.json();
@@ -32,6 +34,19 @@ const Slider = ({
         console.error("Load users error:", error);
       });
   }, [user?._id]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setUser(null);
+    }
+  };
 
   // Show profile settings
   if (showSettings) {
@@ -52,21 +67,31 @@ const Slider = ({
 
   return (
     <aside
-      className={`w-[350px] absolute inset-y-0 left-0 z-10 flex  flex-col bg-red-200 transition-transform duration-300 md:relative  md:translate-x-0 ${
+      className={`w-[350px] absolute inset-y-0 left-0 z-10 flex flex-col bg-red-200 transition-transform duration-300 md:relative md:translate-x-0 ${
         showSidebar ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       {/* Sidebar header */}
-      <div className="flex justify-between border-b p-4 text-lg font-bold">
+      <div className="flex items-center justify-between border-b p-4 text-lg font-bold">
         <h2>Users</h2>
 
-        <button
-          onClick={() => setShowSettings(true)}
-          className="rounded-lg p-2 hover:bg-red-300"
-          title="Profile settings"
-        >
-          <Settings size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="rounded-lg p-2 hover:bg-red-300"
+            title="Profile settings"
+          >
+            <Settings size={20} />
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-lg p-2 text-red-700 hover:bg-red-300 hover:text-red-900"
+            title="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
 
       {/* User list */}

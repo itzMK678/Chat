@@ -1,14 +1,18 @@
-const express = require("express");
-const router = express.Router();
-const User = require("../models/User");
+import express from "express";
+import User from "../models/User.js";
+import { protect } from "../middleware/auth.js";
 
-router.get("/", async (req, res) => {
-    try {
-        const users = await User.find();
-        res.json(users);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+const router = express.Router();
+
+// GET /users - get all users except password, protected by auth
+router.get("/", protect, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    console.error("Fetch users error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
-module.exports = router;
+export default router;

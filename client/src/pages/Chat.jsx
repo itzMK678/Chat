@@ -159,6 +159,7 @@ const Chat = ({ user, setUser }) => {
 
       const response = await fetch(`${API_URL}/messages/voice`, {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
 
@@ -491,7 +492,9 @@ const Chat = ({ user, setUser }) => {
   useEffect(() => {
     if (!user?._id) return;
 
-    const s = io(API_URL);
+    const s = io(API_URL, {
+      withCredentials: true,
+    });
     socket.current = s;
     s.emit("addUser", user._id);
 
@@ -631,7 +634,9 @@ const Chat = ({ user, setUser }) => {
   useEffect(() => {
     if (!user?._id) return;
 
-    fetch(`${API_URL}/users`)
+    fetch(`${API_URL}/users`, {
+      credentials: "include",
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Could not load users");
         return res.json();
@@ -648,7 +653,9 @@ const Chat = ({ user, setUser }) => {
 
     let cancelled = false;
 
-    fetch(`${API_URL}/messages/${user._id}/${currentChat._id}`)
+    fetch(`${API_URL}/messages/${user._id}/${currentChat._id}`, {
+      credentials: "include",
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Could not load messages");
         return res.json();
@@ -677,6 +684,7 @@ const Chat = ({ user, setUser }) => {
       const response = await fetch(`${API_URL}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           sender: user._id,
           receiver: receiverId,

@@ -11,7 +11,9 @@ import {
   UserPlus,
 } from "lucide-react";
 
-const Signup = ({ setUser }) => {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const Signup = ({ setUser, switchToLogin }) => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,7 +78,7 @@ const Signup = ({ setUser }) => {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/auth/signup", {
+      const res = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -329,8 +331,11 @@ const Signup = ({ setUser }) => {
           <button
             type="button"
             onClick={() => {
-              // Replace this with your login-page navigation.
-              window.location.href = "/login";
+              if (switchToLogin) {
+                switchToLogin();
+              } else {
+                window.location.href = "/";
+              }
             }}
             className="font-semibold text-purple-600 hover:text-purple-800"
           >
